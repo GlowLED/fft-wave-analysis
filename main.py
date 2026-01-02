@@ -83,7 +83,8 @@ def plot_result(
     time_raw = np.arange(result.raw.size) / sr
     time_seg = result.segment_start + (np.arange(result.segment.size) / sr)
 
-    fig, axes = plt.subplots(3, 1, figsize=(10, 10), constrained_layout=True)
+    fig, axes = plt.subplots(3, 1, figsize=(10, 14))
+    fig.subplots_adjust(hspace=0.4, top=0.95, bottom=0.08)
 
     axes[0].plot(time_raw, result.raw, color="0.6", linewidth=0.8, label="preprocessed")
     axes[0].plot(time_seg, result.segment, color="C0", linewidth=0.9, label="selected segment")
@@ -118,16 +119,41 @@ def plot_result(
 
 
 def _annotate_peaks(axis, peaks: Iterable[Peak]) -> None:
-    for peak in peaks:
-        axis.scatter(peak.frequency, peak.amplitude, color="red", s=16)
+    peaks_list = list(peaks)
+    if not peaks_list:
+        return
+    
+    ylim = axis.get_ylim()
+    
+    # 按频率排序，以便更好地分配标签位置
+    sorted_peaks = sorted(peaks_list, key=lambda p: p.frequency)
+    
+    for i, peak in enumerate(sorted_peaks):
+        axis.scatter(peak.frequency, peak.amplitude, color="red", s=16, zorder=5)
         label = peak.label or "peak"
+        
+        # 交替使用上下偏移，避免标签重叠
+        # 根据峰值在y轴上的位置决定偏移方向
+        if peak.amplitude > (ylim[0] + ylim[1]) / 2:
+            # 峰值在上半部分，标签向下偏移
+            offset_y = -30 - (i % 3) * 15  # 交替不同的偏移量
+        else:
+            # 峰值在下半部分，标签向上偏移
+            offset_y = 30 + (i % 3) * 15
+        
+        # 水平偏移也稍微变化，避免完全重叠
+        offset_x = 5 + (i % 2) * 10
+        
         axis.annotate(
             f"{label}\n{peak.frequency:.1f} Hz",
             xy=(peak.frequency, peak.amplitude),
-            xytext=(5, 5),
+            xytext=(offset_x, offset_y),
             textcoords="offset points",
             fontsize=8,
             color="red",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7, edgecolor="red", linewidth=0.5),
+            ha="left",
+            zorder=6,
         )
 
 
